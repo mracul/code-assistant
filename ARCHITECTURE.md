@@ -98,24 +98,35 @@ The backend hosts the core AI logic, semantic context engines, and orchestrates 
 
 ## Project Structure
 
+Below is the current structure of the repository. Note that some directories (`components`, `services`, `orchestrator`, `agents`, `utils`) are part of the target architecture and will be created as the project develops.
+
 ```plaintext
 project-root/
-├── node_frontend/       # TUI client
-│   ├── cli.js           # REPL entry point
-│   ├── components/      # React UI components
-│   └── services/        # API clients, state management
-├── python_backend/      # AI and orchestration backend
-│   ├── main.py          # FastAPI server entrypoint
-│   ├── orchestrator/    # Workflow and agent management
-│   ├── agents/          # Individual AI agents with JSON I/O
-│   ├── context_engine/  # Parsers, caches, vector DB integration
-│   ├── services/        # Shared logic, API clients
-│   ├── utils/           # Utilities and helpers
-│   └── .context_cache.db# SQLite cache
-├── workflows/           # Workflow definitions (JSON)
+├── .gitignore
+├── ARCHITECTURE.md
+├── CODEBASE.md
+├── GEMINI.md
+├── IMPLEMENTATION_CHECKLIST.md
+├── README.md
+├── node_frontend/
+│   ├── babel.config.cjs
+│   ├── cli.js
+│   ├── cli.test.js
+│   ├── package-lock.json
+│   └── package.json
+├── python_backend/
+│   ├── .context_cache.db
+│   ├── __init__.py
+│   ├── context_engine/
+│   │   ├── __init__.py
+│   │   ├── file_discovery.py
+│   │   ├── input_handler.py
+│   │   └── tokenization.py
+│   ├── main.py
+│   └── requirements.txt
+├── workflows/
 │   └── default.json
-├── .env                 # Environment variable templates
-└── README.md            # Project overview and instructions
+```
 
 Design Principles & Best Practices
 
