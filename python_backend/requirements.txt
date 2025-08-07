@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+tiktoken
+pathspec
+openai
+faiss-cpu
+numpy
