@@ -5,7 +5,8 @@
   "main": "cli.js",
   "type": "module",
   "scripts": {
-    "start": "node cli.js",
+    "start": "npm run build && node dist/cli.js",
+    "build": "babel cli.js --out-dir dist",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest"
   },
   "keywords": [
@@ -17,20 +18,23 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@babel/node": "^7.28.0",
     "axios": "^1.7.2",
     "chalk": "^5.3.0",
     "diff": "^5.2.0",
-    "ink": "^5.0.1",
-    "inquirer": "^9.2.22",
     "ink": "^4.4.1",
-    "ink-text-input": "^5.0.1"
+    "ink-text-input": "^5.0.1",
+    "inquirer": "^9.2.22",
+    "react": "^18.3.1",
+    "ws": "^8.17.0"
   },
   "devDependencies": {
+    "@babel/cli": "^7.28.0",
     "@babel/preset-env": "^7.24.7",
     "@babel/preset-react": "^7.24.7",
-    "jest": "^29.7.0",
-    "@testing-library/react": "^15.0.0",
-    "ink-testing-library": "^3.0.0"
+    "@testing-library/react": "^14.0.0",
+    "ink-testing-library": "^3.0.0",
+    "jest": "^29.7.0"
   },
   "jest": {
     "transformIgnorePatterns": [

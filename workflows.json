@@ -1,0 +1,39 @@
+{
+  "//": "This file defines the sequence of agent execution for different high-level tasks.",
+  "workflows": {
+    "NewFeatureDevelopment": {
+      "description": "Designs, implements, and validates a new feature from a user request.",
+      "sequence": [
+        {
+          "step": "1. Elicit Requirements",
+          "agent": "RequirementsEngineer"
+        },
+        {
+          "step": "2. Design Deliberation",
+          "type": "deliberation",
+          "proposer": "CreativeArchitect",
+          "challenger": "TechnicalAnalyst",
+          "max_turns": 2,
+          "on_failure": "prompt_user_for_decision"
+        },
+        {
+          "step": "3. Generate Code",
+          "agent": "DiffAgent"
+        },
+        {
+          "step": "4. Finalize and Prepare Commit",
+          "type": "workflow",
+          "name": "FinalizeAndCommit"
+        }
+      ]
+    },
+    "FinalizeAndCommit": {
+      "description": "Summarizes changes and prepares git commands.",
+      "sequence": [
+        { "step": "Summarize Change", "agent": "ChangeSummarizer" },
+        { "step": "Create Commit Message", "agent": "ConventionalCommit" },
+        { "step": "Prepare Git Commands", "agent": "VersionControl" }
+      ]
+    }
+  }
+}

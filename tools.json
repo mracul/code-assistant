@@ -1,0 +1,178 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "ast_parser_tool",
+      "description": "Accepts source code as a string and returns a traversable Abstract Syntax Tree. Essential for structural analysis and safe refactoring.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "file_content": {
+            "type": "string",
+            "description": "The full source code content to be parsed into an AST."
+          }
+        },
+        "required": ["file_content"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "code_retriever_tool",
+      "description": "Performs semantic search over a vector store of code embeddings to find code chunks relevant to a natural language query. Use this to find contextually similar code.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "The natural language query to search for (e.g., 'function for user authentication')."
+          },
+          "k": {
+            "type": "integer",
+            "description": "The number of relevant code chunks to return.",
+            "default": 5
+          }
+        },
+        "required": ["query"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "token_estimate_tool",
+      "description": "Calculates the exact number of tokens for a given string based on the specified model's tokenizer. Use this to prevent context window overflows.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The text to be tokenized and counted."
+          }
+        },
+        "required": ["text"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "prompt_context_builder_tool",
+      "description": "Dynamically constructs a final prompt string from a template and a dictionary of context variables. Use this to assemble context from multiple sources.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "template": {
+            "type": "string",
+            "description": "The prompt template with Python-style placeholders (e.g., 'Context: {context}')."
+          },
+          "context": {
+            "type": "object",
+            "description": "A dictionary where keys match the placeholders in the template."
+          }
+        },
+        "required": ["template", "context"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "diff_formatter_tool",
+      "description": "Creates or applies a unified diff to a file. Use 'create' to see a proposed change or 'apply' to enact a change.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": ["create", "apply"],
+            "description": "The action to perform: 'create' a diff from two texts or 'apply' a diff to one text."
+          },
+          "text1": {
+            "type": "string",
+            "description": "The original text content."
+          },
+          "text2": {
+            "type": "string",
+            "description": "The new text content (only used for 'create' action)."
+          },
+          "diff_text": {
+            "type": "string",
+            "description": "The unified diff text to apply (only used for 'apply' action)."
+          }
+        },
+        "required": ["action", "text1"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "dependency_graph_tool",
+      "description": "Builds a directed graph of dependencies by analyzing import statements in a list of Python files. Essential for understanding codebase structure.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "file_paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "An array of absolute paths to the Python files to be included in the graph."
+          }
+        },
+        "required": ["file_paths"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "runtime_flow_analyzer_tool",
+      "description": "Performs static analysis to trace a simplified function call graph from a given entry point. Does not actually execute code.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "file_paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "An array of absolute paths to the Python files to analyze."
+          },
+          "entry_function": {
+            "type": "string",
+            "description": "The name of the function or method to begin the call trace from."
+          }
+        },
+        "required": ["file_paths", "entry_function"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "design_refactor_tool",
+      "description": "Uses a powerful LLM to refactor a piece of code according to a specified, well-known design pattern. This is a placeholder and does not actually call an LLM.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "The source code to be refactored."
+          },
+          "pattern_name": {
+            "type": "string",
+            "description": "The name of the design pattern to apply (e.g., 'Singleton', 'Factory', 'Observer')."
+          },
+          "instructions": {
+            "type": "string",
+            "description": "Specific, detailed instructions for how the pattern should be applied to the given code."
+          }
+        },
+        "required": ["code", "pattern_name", "instructions"]
+      }
+    }
+  }
+]

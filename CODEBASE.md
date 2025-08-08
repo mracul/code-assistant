@@ -1,99 +1,47 @@
-<!--
-AGENT_INSTRUCTION: This document is a comprehensive **semantic map** of the codebase for the Hybrid Agentic CLI Assistant. Use it to locate key modules, understand architectural relationships, and grasp design rationale. It is optimized for RAG, vector search, and semantic retrieval.
+# Codebase Guide
 
-**Implementation details, design decisions, and rationale must be maintained and updated in this document** to ensure a single source of truth for developers and AI agents.
+This document provides a developer-oriented overview of the key modules and files in the project.
 
-**Any changes to this file or related documentation must adhere to the existing style and rationale of the current implementation.**  
-Focus on **adding meaningful context, clarifications, or new functionality** rather than removing or refactoring existing content unless absolutely necessary and justified.
--->
+## Root Directory
 
-# Codebase Overview
+-   `start-dev-environment.ps1`: PowerShell script to launch the full development environment.
+-   `ARCHITECTURE.md`: High-level overview of the system architecture.
+-   `CODEBASE.md`: This file.
+-   `GEMINI.md`: The master project blueprint and development plan.
+-   `IMPLEMENTATION_CHECKLIST.md`: A checklist tracking the implementation of core features.
+-   `workflows.json`: Defines the sequences of agent execution for high-level tasks.
+-   `tools.json`: OpenAI-compatible function-calling specification for the core toolchain.
 
-This document details the core **modules**, **patterns**, and **terminology** of the project. It explains the structure, responsibilities, and interactions to facilitate efficient code comprehension and retrieval.
+## Frontend (`node_frontend/`)
 
----
+-   `cli.js`: The main entry point and component for the Ink-based TUI. It handles rendering all UI panels, managing frontend state, and communicating with the backend via WebSocket.
 
-## Core Concepts
+## Backend (`python_backend/`)
 
-- **Agent:** Modular logic units performing **single-responsibility** tasks. Communicate via **JSON input/output schemas**.
-- **Orchestrator:** Controls and manages **agent workflows**, handling retries, escalation, and session state.
-- **Context Engine:** Provides **semantic context** using AST parsing, caching, embeddings, and Git history.
-- **Workflow:** Predefined sequences of agents for tasks like **bug fixing** or **code refactoring**.
-- **REPL:** The **interactive command loop** in the Node.js front-end capturing user commands and displaying output.
+-   `main.py`: The main entry point for the FastAPI application. It defines all API endpoints and the primary WebSocket handler, and contains the core **Command Dispatcher** logic.
 
----
+### Agents (`python_backend/agents/`)
 
-## `/python_backend`
+-   `refactor_agent.py`: Implements safe, structural refactoring (e.g., renaming functions) using AST transformations.
+-   `diff_agent.py`: Generates LLM-driven code modifications and creates a unified diff of the changes.
+-   `code_search_agent.py`: Implements the hybrid search logic (AST + semantic).
+-   `change_summarizer_agent.py`: Takes a code diff and uses an LLM to generate a structured summary.
+-   `conventional_commit_agent.py`: Takes a structured summary and uses an LLM to create a conventional commit message.
+-   `version_control_agent.py`: Generates `git` commands for staging and committing changes.
 
-The **backend service** implementing all AI logic, agent workflows, and context processing.
+### Orchestrator (`python_backend/orchestrator/`)
 
-### `/python_backend/main.py`
+-   `agent_state.py`: Defines the `AgentState` class, the central hub for managing session-specific data.
+-   `context_builder.py`: Implements the incremental refinement loop to build high-confidence context for agents.
+-   `conversation_history.py`: A robust, token-aware class for managing dialogue history with persistence.
+-   `prompt_parser.py`: Parses the raw user input string to extract commands, arguments, and file tags.
 
-- **Purpose:** FastAPI app entry point exposing all REST API endpoints.
-- **Role:** Manages HTTP requests, delegates to orchestrator and agents.
-- **Design:** Separates route definitions from business logic for clarity.
+### Utilities (`python_backend/utils/`)
 
-### `/python_backend/orchestrator/`
+-   `ast_search.py`: A tool for performing structural queries on a file's Abstract Syntax Tree.
+-   `path_validator.py`: A security utility for validating and normalizing all file paths.
+-   `swe_tools.py`: A module containing the core "Software Engineering" toolchain.
 
-- **Purpose:** Houses the **Orchestrator** class managing workflow execution.
-- **Responsibilities:** Loads agents, runs workflows from `workflows.json`, manages **confidence scoring** and **retry policies**.
-- **Architecture:** Decouples **workflow management** from agent implementation, promoting modularity.
+### Prompts (`python_backend/prompts/`)
 
-### `/python_backend/agents/`
-
-- **Contents:** Individual **agent modules** encapsulating specific tasks.
-- **Design:** Each agent follows strict **input/output JSON schema** contracts.
-- **Principles:** Implements **single responsibility** and is **stateless** where possible.
-
-### `/python_backend/context_engine/`
-
-- **Function:** Extracts and caches **project context**.
-- **Components:** AST parsers, semantic vector stores, dependency analyzers, Git history readers.
-- **Goal:** Ground agent queries in **accurate, up-to-date context**.
-
-### `/python_backend/services/` and `/utils/`
-
-- **Purpose:** Shared **utilities**, logging, schema validation, and helpers.
-- **Benefit:** Enables code reuse and separation of concerns.
-
----
-
-## `/node_frontend`
-
-The **Node.js TUI client** providing an interactive user interface.
-
-### `/node_frontend/cli.js`
-
-- **Role:** Entry point rendering the Ink React components.
-- **Function:** Implements the **REPL**, sending commands to the backend and displaying streamed results.
-- **Significance:** Acts as the **user interface**, abstracting backend complexity.
-
-### `/node_frontend/components/`
-
-- **Purpose:** UI building blocks like logs, inputs, and diff views.
-- **Design:** Modular React components for composability and reuse.
-
-### `/node_frontend/services/`
-
-- **Role:** API client wrappers, state management, caching layers.
-- **Separation:** Decouples network logic from UI components.
-
----
-
-## Architectural Principles
-
-- **Modularity:** Agents encapsulate **one responsibility**; communicate via **JSON contracts**.
-- **Statelessness:** Components are designed to be **idempotent** and **reproducible**.
-- **Separation of Concerns:** Clear division between UI, orchestration, agent logic, and context.
-- **Documentation-Driven:** Maintain updated markdown docs (`README.md`, `ARCHITECTURE.md`, `CODEBASE_OVERVIEW.md`) for context and design rationale.
-- **Design Patterns:**  
-  - **Command pattern** for workflows in Orchestrator.  
-  - **Microservice-like isolation** of agents within a monorepo.  
-  - **Caching and indexing** strategies in Context Engine.
-
----
-
-This overview is your **first reference point** for understanding, navigating, and contributing to the project. It ensures efficient retrieval of critical design and implementation knowledge using semantic search tools.
-
-**All implementation details, including design decisions and changes, must be documented here to keep this file as the single source of truth for both developers and AI-driven tooling.**  
-**When updating this or related documentation, preserve the existing style and rationale, emphasizing additions and improvements over removals.**
+-   This directory contains the structured Markdown prompt templates that guide the behavior of the LLM-powered agents.

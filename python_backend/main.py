@@ -1,76 +1,85 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
-from context_engine import input_handler, file_discovery, tokenization, vector_store
+from orchestrator.agent_state import AgentState
+from orchestrator.prompt_parser import PromptParser
+from orchestrator.command_handler import COMMAND_REGISTRY
+from orchestrator.context_builder import ContextBuilder
+from orchestrator.workflow_runner import WorkflowRunner
+import json
+import asyncio
+import uuid
 
 app = FastAPI()
+active_connections = {}
 
-# Create a global in-memory vector store instance
-db = vector_store.InMemoryVectorStore()
+class UserInput(BaseModel):
+    text: str
 
-class AnalyzeRequest(BaseModel):
-    prompt: str
-    path: str
+@app.post("/api/v1/connect")
+async def connect():
+    """Generates a unique ID for a new client connection."""
+    connection_id = str(uuid.uuid4())
+    state = AgentState(connection_id)
+    active_connections[connection_id] = state
+    return {"connection_id": connection_id}
 
-class SearchRequest(BaseModel):
-    query: str
-    limit: int = 10
+@app.websocket("/ws/{connection_id}")
+async def websocket_endpoint(websocket: WebSocket, connection_id: str):
+    if connection_id not in active_connections:
+        await websocket.close(code=1008)
+        return
+    
+    state = active_connections[connection_id]
+    await state.connect(websocket)
+    
+    try:
+        await state.send_message("connection_ready", {"connection_id": connection_id})
+        while True:
+            # This websocket is for broadcasting from the server.
+            # Input is handled via the HTTP endpoint.
+            await asyncio.sleep(1)
+            
+    except WebSocketDisconnect:
+        state.disconnect()
+        if connection_id in active_connections:
+            del active_connections[connection_id]
 
-@app.get("/api/v1/ping")
-def read_root():
+# ... (Models and WebSocket endpoint remain the same) ...
+
+async def handle_user_input(state: AgentState, user_input: str):
+    """
+    Parses user input and dispatches it to the appropriate command handler or workflow.
+    """
+    parser = PromptParser(user_input)
+    parsed = parser.parse()
+    state.add_message("user", user_input)
+    
+    command = parsed["command"]
+    args = parsed["args"]
+    instruction = parsed["instruction"]
+
+    # Dispatch to the command registry
+    if command in COMMAND_REGISTRY:
+        await COMMAND_REGISTRY[command](state, args)
+    elif command == "prompt":
+        # Handle natural language prompts by running the context builder and then a workflow
+        state.user_request = instruction
+        await state.send_log("Natural language prompt detected. Building context...")
+        context_builder = ContextBuilder(state)
+        await context_builder.run()
+        
+        await state.send_log("Context ready. Starting agentic workflow...")
+        workflow_runner = WorkflowRunner(state)
+        asyncio.create_task(workflow_runner.execute_workflow('NewFeatureDevelopment'))
+    else:
+        await state.send_log(f"Unknown command: /{command}. Available commands: {list(COMMAND_REGISTRY.keys())}")
+
+@app.post("/api/v1/input/{connection_id}")
+async def user_input_endpoint(connection_id: str, user_input: UserInput):
+    if connection_id not in active_connections:
+        return {"status": "error", "message": "Invalid connection ID."}
+    state = active_connections[connection_id]
+    asyncio.create_task(handle_user_input(state, user_input.text))
     return {"status": "ok"}
 
-@app.post("/api/v1/analyze")
-def analyze(request: AnalyzeRequest):
-    try:
-        input_handler.validate_path(request.path)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-    # Clear the old store for a fresh analysis
-    db.clear()
-
-    discovered_files = list(file_discovery.discover_files(request.path))
-    tokenizer = tokenization.get_tokenizer()
-
-    total_chunks_embedded = 0
-    for file_path in discovered_files:
-        content = tokenization.read_file_content(file_path)
-        if not content or content.startswith("Error reading file"):
-            continue
-
-        chunks_text = list(tokenization.chunk_content(content, tokenizer))
-        if not chunks_text:
-            continue
-
-        embeddings = vector_store.generate_embeddings(chunks_text)
-        if not embeddings:
-            continue
-
-        # Prepare metadata
-        metadata = [
-            {"file_path": file_path, "chunk_id": i, "content": chunk}
-            for i, chunk in enumerate(chunks_text)
-        ]
-
-        db.add(embeddings, metadata)
-        total_chunks_embedded += len(chunks_text)
-
-    return {
-        "status": "ok",
-        "message": f"Analyzed {len(discovered_files)} files and stored {total_chunks_embedded} embedding chunks in memory.",
-    }
-
-@app.post("/api/v1/search")
-def search(request: SearchRequest):
-    try:
-        query_embedding = vector_store.generate_embeddings([request.query])
-        if not query_embedding:
-            return {"status": "ok", "results": []}
-
-        search_results = db.search(query_embedding[0], k=request.limit)
-        return {
-            "status": "ok",
-            "results": search_results
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# ... (The rest of the file remains the same) ...

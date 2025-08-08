@@ -1,7 +1,13 @@
 fastapi
 uvicorn
+pydantic
 tiktoken
 pathspec
 openai
 faiss-cpu
 numpy
+diff-match-patch
+chromadb
+GitPython
+SQLAlchemy
+networkx

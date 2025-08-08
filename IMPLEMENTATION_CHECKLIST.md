@@ -1,40 +1,34 @@
 # Implementation Checklist
 
-## Phase 1: The Back-End "Brain" - The Python AI Service
-- [ ] **1.1 Project Setup (Python):** Create a `python_backend` directory, set up a Python virtual environment, and initialize a git repository for the whole project.
-- [ ] **1.2 Install Core Dependencies:** Install `fastapi` and `uvicorn`.
-- [ ] **1.3 Create the API Server:** In `python_backend/main.py`, create a basic FastAPI app.
-- [ ] **1.4 Build a "Ping" Endpoint:** Create a simple API endpoint at `/api/v1/ping` that returns `{"status": "ok"}`.
-- [ ] **1.5 Test the Endpoint:** Access `http://localhost:8000/api/v1/ping` and verify the JSON response.
+This checklist tracks the implementation of the core features of the agentic CLI assistant.
 
-## Phase 2: The Front-End "Face" - The Node.js TUI
-- [ ] **2.1 Project Setup (Node.js):** Create a `node_frontend` directory and run `npm init`.
-- [ ] **2.2 Install Core Dependencies:** Install `ink`, `react`, and `axios`.
-- [ ] **2.3 Build the Basic TUI:** In `node_frontend/cli.js`, create a basic Ink application with a header, a log area, and an input box.
-- [ ] **2.4 Implement the REPL:** Implement the core Read-Eval-Print Loop.
-- [ ] **2.5 Connect to the Backend:** Use `axios` to make a GET request to the Python server's `/api/v1/ping` endpoint.
+## Phase 1: Core Foundation & TUI
+- [x] **1.1 Project Setup:** Python backend and Node.js frontend directories created.
+- [x] **1.2 Core Dependencies:** All necessary Python and Node.js libraries installed.
+- [x] **1.3 Advanced TUI:** Implemented a multi-panel TUI with regions for logs, active files, and a main content/diff view.
+- [x] **1.4 WebSocket Bridge:** Established real-time, bidirectional communication.
 
-## Phase 3: Building the Context Engine (Python Backend)
-- [ ] **3.1 File System Scanner:** Implement a function that scans a given directory for source code files.
-- [ ] **3.2 SQLite Caching Layer:** Set up a local SQLite database (`.context_cache.db`).
-- [ ] **3.3 AST-Based Parser:** Create a `ContextBuilder` service to parse a Python file's content into an AST.
-- [ ] **3.4 New Context Endpoint:** Create a new API endpoint, `POST /api/v1/analyze`.
+## Phase 2: User Input & Command Handling
+- [x] **2.1 Prompt Parser:** Created a robust parser to handle commands (`/load`, `/refactor`, `/commit`), file tags (`@file`), and natural language instructions.
+- [x] **2.2 Path Validation:** Implemented a `PathValidator` for safe file handling.
+- [x] **2.3 Command Dispatcher:** Built a central dispatcher to route user input to the correct handlers.
 
-## Phase 4: Implementing the Agentic Workflow (Python Backend)
-- [ ] **4.1 Agent Registry:** Create the `agents.json` file and a Python class to manage agent definitions.
-- [ ] **4.2 Agent Executor Service:** Create a generic function to execute any agent from the registry.
-- [ ] **4.3 Orchestrator Class:** Build the `Orchestrator` class in Python.
-- [ ] **4.4 New Workflow Endpoint:** Create the main endpoint, `POST /api/v1/execute-workflow`.
+## Phase 3: Advanced Context Engine
+- [x] **3.1 Incremental Context Builder:** Implemented a refinement loop to build high-confidence context before running agents.
+- [x] **3.2 AST-Aware Chunking & Search:** Implemented intelligent code chunking and structural search capabilities.
+- [x] **3.3 Enriched Vector Store:** Upgraded the ChromaDB store to include rich metadata for better semantic search.
 
-## Phase 5: Closing the Loop (Node.js Frontend)
-- [ ] **5.1 Connect to Workflow Endpoint:** Update the Node.js app to call the new `/api/v1/execute-workflow` endpoint.
-- [ ] **5.2 Implement Status Updates:** Stream status updates from the Python service to the TUI.
-- [ ] **5.3 Display Code Diffs:** Render a color-coded diff in the TUI.
-- [ ] **5.4 User Confirmation & File I/O:** Prompt the user for confirmation and write changes to the local file system.
+## Phase 4: State & Agent Orchestration
+- [x] **4.1 State Management:** Implemented a structured `AgentState` to manage the complete session.
+- [x] **4.2 Persistent Conversation History:** Created a token-aware `ConversationHistory` class that persists to disk.
+- [x] **4.3 Hybrid Search Agent:** Built a `CodeSearchAgent` that intelligently chooses between AST and semantic search.
+- [x] **4.4 Diff Agent:** Created a `DiffAgent` to propose LLM-driven code changes.
+- [x] **4.5 AST-based Refactor Agent:** Implemented a `RefactorAgent` for safe, structural code modifications.
 
-## Phase 6: Advanced Context & Intelligence Layer
-- [ ] **6.1 Implement RAG for Semantic Search:** Implement the full RAG pipeline.
-- [ ] **6.2 Implement SQL Schema Analyzer:** Create a service to inspect a project's database schema.
-- [ ] **6.3 Implement Git History Analyzer:** Create a service to analyze the Git history.
-- [ ] **6.4 Upgrade Orchestrator:** Enhance the Orchestrator to use new context sources.
-- [ ] **6.5 Enhance TUI with Context:** Add a new panel or command to the TUI to show context.
+## Phase 5: Finalization & Version Control
+- [x] **5.1 Diff Confirmation Loop:** Implemented the full frontend/backend workflow for user approval of changes.
+- [x] **5.2 Change Summarizer Agent:** Implemented an agent to summarize code diffs.
+- [x] **5.3 Conventional Commit Agent:** Implemented an agent to generate commit messages.
+- [x] **5.4 Version Control Agent:** Implemented an agent to generate final `git` commands.
+- [ ] **5.5 Test Generator Agent:** Implement an agent to automatically generate unit tests for changes.
+- [ ] **5.6 Advanced Workflow Runner:** Fully implement the conditional logic and deliberation loops in the `WorkflowRunner`.

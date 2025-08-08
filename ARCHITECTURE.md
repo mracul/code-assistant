@@ -1,146 +1,50 @@
-<!--
-AGENT_INSTRUCTION: This document is the definitive architecture reference for the Hybrid Agentic CLI Assistant.  
-Consult it for any design, implementation, refactoring, or feature extension to ensure consistency with the system’s core principles and architecture.  
-Maintain and update this file with all architectural decisions, including rationale and trade-offs, to keep it as the single source of truth.
--->
+# System Architecture
 
-# Architecture Overview
+This document outlines the high-level architecture of the Hybrid Agentic CLI Assistant. The system is designed with a clear separation of concerns between the user interface, the backend orchestration logic, and the AI-powered agentic core.
 
-This document details the architecture of the Hybrid Agentic CLI Assistant, a distributed system designed to combine a highly responsive terminal UI with a powerful AI-driven backend. The architecture balances modularity, scalability, and maintainability, supporting complex agent workflows driven by advanced semantic context retrieval.
+## Core Components
 
----
+1.  **Node.js TUI Frontend (`node_frontend/`)**:
+    *   A rich, multi-panel terminal interface built with **Ink** and **React**.
+    *   Provides regions for logs, active file lists, and a main content view for file previews and diffs.
+    *   Communicates with the backend exclusively via a **WebSocket** for real-time, bidirectional updates and a REST API for initial commands.
 
-## System Composition
+2.  **Python FastAPI Backend (`python_backend/`)**:
+    *   Serves as the central "brain" of the application, powered by the **GPT-4.1-mini** model.
+    *   Exposes a WebSocket endpoint for persistent communication with the TUI.
+    *   Exposes REST endpoints for stateless commands and receiving user input.
 
-The system consists of **two primary services** working in tandem:
+3.  **Orchestrator & Command Dispatcher (`python_backend/orchestrator/`)**:
+    *   **Prompt Parser**: Analyzes raw user input to distinguish between commands (e.g., `/load`, `/refactor`, `/commit`) and natural language prompts.
+    *   **Command Dispatcher**: Routes parsed commands to the appropriate agent or workflow.
+    *   **Context Builder**: Incrementally gathers, evaluates, and refines context (files, history, search results) until a confidence threshold is met before passing it to an agent.
 
-- **Node.js TUI Frontend ("The Face")**
-- **Python AI Backend ("The Brain")**
+4.  **State & Context Manager (`python_backend/orchestrator/`)**:
+    *   **AgentState**: A structured class managing the complete state for a user session, including loaded files, ASTs, modified code buffers, and conversation history.
+    *   **ConversationHistory**: A token-aware class that manages the dialogue, supporting truncation and persistent storage to disk.
 
-This separation enables a lightweight, responsive user interface tightly integrated with a robust AI and semantic analysis engine.
+5.  **Hybrid Search & Context Engine (`python_backend/context_engine/`)**:
+    *   **AST-Aware Chunking & Search**: Intelligently chunks Python code by functions/classes and provides tools for precise, structural code queries.
+    *   **Vector Store**: Uses **ChromaDB** to store embeddings of code chunks for fast semantic retrieval (RAG).
 
----
+6.  **Agentic Core (`python_backend/agents/`)**:
+    *   A collection of specialized agents, each responsible for a specific task. Key agents include:
+        *   `CodeSearchAgent`: Performs hybrid AST and semantic searches.
+        *   `DiffAgent`: Generates LLM-driven code changes and presents them as a diff.
+        *   `RefactorAgent`: Performs safe, structural refactoring using AST transformations.
+        *   `ChangeSummarizerAgent`: Summarizes a code diff into a structured format.
+        *   `ConventionalCommitAgent`: Creates a conventional commit message from a summary.
+        *   `VersionControlAgent`: Generates the final `git` commands.
 
-## Frontend: Node.js Terminal UI
+## Data Flow: Example End-to-End Workflow (`/refactor` -> `/commit`)
 
-### Role
-
-The frontend provides an **interactive command-line interface** where users input commands, review agent suggestions, and approve or reject code changes.
-
-### Core Technologies
-
-- **Ink** — React renderer tailored for terminal apps, facilitating dynamic and declarative UI construction.
-- **React** — Component-based UI architecture, enabling modular and reusable interface elements.
-- **Axios** — HTTP client responsible for reliable communication with the backend API.
-
-### Responsibilities
-
-- **User Interaction & REPL:** Captures and processes user commands in a classic Read-Eval-Print Loop.
-- **Rendering UI:** Displays agent activity logs, real-time status updates, and structured, color-coded code diffs.
-- **Backend Communication:** Sends JSON-formatted requests to backend endpoints and streams back results.
-- **User Confirmation Workflow:** Handles user approval or rejection of proposed code changes, enabling controlled file system modifications.
-
-### Architectural Rationale
-
-- Decoupling UI from backend logic optimizes responsiveness.
-- Using React/Ink promotes modular UI components, enabling easy extension.
-- RESTful communication simplifies integration and future scalability.
-
----
-
-## Backend: Python AI Service
-
-### Role
-
-The backend hosts the core AI logic, semantic context engines, and orchestrates agent workflows that analyze, modify, and generate code and other artifacts.
-
-### Core Technologies
-
-- **FastAPI + Uvicorn:** High-performance ASGI web framework and server providing RESTful API endpoints.
-- **SQLite:** Lightweight local database caching parsed code, vector embeddings, and dependency graphs.
-- **SQLAlchemy:** ORM for inspecting and interacting with project databases.
-- **GitPython:** Tool for accessing Git metadata and history to inform semantic relevance heuristics.
-- **AI/ML Stack:** Embedding models (`sentence-transformers`), vector DB (`chromadb`), and LLM providers (e.g., OpenAI).
-
-### Key Components
-
-#### API Server
-
-- Handles frontend requests with endpoints like `/ping`, `/analyze`, and `/execute-workflow`.
-- Delegates to orchestration layer for agent-driven workflows.
-
-#### Context Engine
-
-- **Source Scanner:** Recursively scans project directories for source files.
-- **AST Parser:** Transforms code into Abstract Syntax Trees to extract declarations, dependencies, and structure.
-- **Cache Layer:** Persists parsed data and embeddings for fast subsequent retrieval.
-
-#### Intelligence Layer
-
-- **RAG (Retrieval-Augmented Generation):** Combines vector embeddings and keyword search for semantically rich context retrieval.
-- **Schema Analyzer:** Inspects connected databases to inform agents about schema structure.
-- **Git Analyzer:** Leverages commit history and co-change heuristics to prioritize relevant files.
-
-#### Agentic Workflow Orchestrator
-
-- **Agent Registry:** Dynamically loads agent definitions and capabilities.
-- **Agent Executor:** Executes agents in isolated contexts with strict input/output contracts.
-- **Workflow Manager:** Coordinates multi-agent sequences according to `workflows.json`, handling retries, confidence scoring, and escalation policies.
-
-### Architectural Rationale
-
-- Modular separation of concerns improves maintainability and testability.
-- Stateless agents with defined I/O schemas enable predictable, composable workflows.
-- Use of caching and vector search balances performance with semantic depth.
-- Leveraging existing AI/ML libraries accelerates development and future-proofs the stack.
-
----
-
-## Project Structure
-
-```plaintext
-project-root/
-├── node_frontend/       # TUI client
-│   ├── cli.js           # REPL entry point
-│   ├── components/      # React UI components
-│   └── services/        # API clients, state management
-├── python_backend/      # AI and orchestration backend
-│   ├── main.py          # FastAPI server entrypoint
-│   ├── orchestrator/    # Workflow and agent management
-│   ├── agents/          # Individual AI agents with JSON I/O
-│   ├── context_engine/  # Parsers, caches, vector DB integration
-│   ├── services/        # Shared logic, API clients
-│   ├── utils/           # Utilities and helpers
-│   └── .context_cache.db# SQLite cache
-├── workflows/           # Workflow definitions (JSON)
-│   └── default.json
-├── .env                 # Environment variable templates
-└── README.md            # Project overview and instructions
-
-Design Principles & Best Practices
-
-    Single Responsibility: Each module, agent, or service addresses a distinct concern.
-
-    Stateless Agents: Agent executions are deterministic, relying solely on explicit inputs.
-
-    JSON Schemas: Agents communicate via well-defined input/output JSON templates.
-
-    Separation of Concerns: UI, orchestration, context retrieval, and AI logic are cleanly separated.
-
-    Extensibility: New agents and workflows can be added without disrupting existing pipelines.
-
-    Semantic Contextualization: Context engine and RAG system provide precise, relevant information to agents.
-
-    Documentation-Driven Development: Architecture and design decisions are continuously documented to maintain a shared understanding.
-
-    Confidence & Escalation: Workflows include mechanisms to retry or escalate based on quantitative confidence scores.
-
-Usage & Extension Notes
-
-    When adding new features or refactoring, adhere to the existing architectural patterns and style.
-
-    Focus on enhancing context awareness and modularity rather than restructuring core components.
-
-    Maintain and extend this document to record architectural changes and rationale.
-
-    Agent inputs and outputs should always be expressed with JSON schemas to ensure interoperability and traceability.
+1.  User issues a command: `/refactor main.py old_func new_func`.
+2.  The **Command Dispatcher** validates the path and invokes the **RefactorAgent**.
+3.  The `RefactorAgent` performs an AST transformation, generates a diff, and sends it to the **TUI** for confirmation.
+4.  User confirms the diff by typing `yes`. The change is written to disk.
+5.  User issues a new command: `/commit`.
+6.  The **Command Dispatcher** invokes the finalization workflow:
+    a.  The **ChangeSummarizerAgent** is called with the last diff. It uses the LLM to generate a structured summary (title, description, type).
+    b.  The **ConventionalCommitAgent** takes this summary and uses the LLM to format a perfect conventional commit message.
+    c.  The **VersionControlAgent** takes the commit message and generates the final `git add` and `git commit` commands.
+7.  The final commands and commit message are sent to the **TUI** for the user to copy and execute.

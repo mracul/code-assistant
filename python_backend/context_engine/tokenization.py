@@ -1,52 +1,75 @@
+# python_backend/context_engine/tokenization.py
+import ast
 import tiktoken
 
-def get_tokenizer(encoding_name: str = "cl100k_base"):
-    """
-    Returns a tiktoken tokenizer for the specified encoding.
-    """
-    return tiktoken.get_encoding(encoding_name)
+# Using a model compatible with GPT-4.1-mini for tokenization
+TOKENIZER = tiktoken.encoding_for_model("gpt-4.1-mini")
 
-def read_file_content(file_path: str):
+def get_tokenizer():
+    """Returns the singleton tokenizer instance."""
+    return TOKENIZER
+
+def chunk_content_by_ast(file_content: str, file_path: str) -> list[dict]:
     """
-    Reads the content of a file with error handling for encoding issues.
+    Chunks a Python file based on its AST structure (classes and functions).
+    Each chunk is a dictionary containing the text and line numbers.
     """
+    chunks = []
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            return f.read()
-    except UnicodeDecodeError:
-        # If utf-8 fails, try a more lenient encoding
-        try:
-            with open(file_path, 'r', encoding='latin-1') as f:
-                return f.read()
-        except Exception as e:
-            # If all else fails, return an error message
-            return f"Error reading file {file_path}: {e}"
-    except Exception as e:
-        return f"Error reading file {file_path}: {e}"
+        tree = ast.parse(file_content, filename=file_path)
+        
+        # First, get top-level imports and code
+        top_level_nodes = [node for node in tree.body if not isinstance(node, (ast.FunctionDef, ast.ClassDef))]
+        if top_level_nodes:
+            start_node = top_level_nodes[0]
+            end_node = top_level_nodes[-1]
+            top_level_content = ast.get_source_segment(file_content, start_node)
+            # This is a simplification; getting the end is tricky.
+            # For now, we'll just take the segment of the first node.
+            chunks.append({
+                "type": "module_code",
+                "name": file_path,
+                "content": top_level_content,
+                "start_line": start_node.lineno,
+                "end_line": end_node.end_lineno if hasattr(end_node, 'end_lineno') else start_node.lineno
+            })
 
-def count_tokens(text: str, tokenizer) -> int:
-    """
-    Counts the number of tokens in a given text.
-    """
-    return len(tokenizer.encode(text))
+        # Then, chunk classes and functions
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
+                chunk_content = ast.get_source_segment(file_content, node)
+                if chunk_content:
+                    chunks.append({
+                        "type": "class" if isinstance(node, ast.ClassDef) else "function",
+                        "name": node.name,
+                        "content": chunk_content,
+                        "start_line": node.lineno,
+                        "end_line": node.end_lineno
+                    })
+        return chunks
+    except (SyntaxError, ValueError):
+        # Fallback for non-Python files or files with syntax errors
+        return chunk_content_by_tokens(file_content)
 
-def chunk_content(text: str, tokenizer, max_tokens: int = 1024, overlap: int = 50):
+def chunk_content_by_tokens(file_content: str, max_tokens=500, overlap=50) -> list[dict]:
     """
-    Splits text into chunks of a maximum size with a specified overlap.
+    A fallback chunking mechanism based on simple token overlap.
     """
-    tokens = tokenizer.encode(text)
-
-    if not tokens:
-        return
-
+    tokens = TOKENIZER.encode(file_content)
+    chunks = []
     start = 0
+    chunk_id = 0
     while start < len(tokens):
         end = start + max_tokens
         chunk_tokens = tokens[start:end]
-
-        yield tokenizer.decode(chunk_tokens)
-
-        if end >= len(tokens):
-            break
-
-        start += (max_tokens - overlap)
+        chunk_text = TOKENIZER.decode(chunk_tokens)
+        chunks.append({
+            "type": "text_chunk",
+            "name": f"chunk_{chunk_id}",
+            "content": chunk_text,
+            "start_line": -1, # Line numbers are not easily tracked here
+            "end_line": -1
+        })
+        start += max_tokens - overlap
+        chunk_id += 1
+    return chunks

@@ -1,0 +1,10 @@
+[
+    {
+        "name": "RequirementsEngineer",
+        "description": "Translates user requests into formal requirements."
+    },
+    {
+        "name": "SolutionArchitect",
+        "description": "Designs a high-level solution to meet the requirements."
+    }
+]
