@@ -61,12 +61,18 @@ const App = () => {
 
                 socket.on('message', (data) => {
                     const message = JSON.parse(data.toString());
+                    const messageData = message.data;
+
                     if (message.type === 'diff') {
-                        addHistory('system', `--- PROPOSED CHANGE for ${message.file_path} ---`);
-                        addHistory('diff', message.data);
+                        addHistory('system', `--- PROPOSED CHANGE for ${messageData.file_path} ---`);
+                        addHistory('diff', messageData.diff);
                         setNotification({ title: 'Confirm', message: 'Apply this diff? (yes/no)' });
-                    } else {
-                        addHistory(message.type, message.data);
+                    } else if (typeof messageData === 'object' && messageData !== null) {
+                        // For logs or other messages that might be objects
+                        addHistory(message.type, messageData.message || JSON.stringify(messageData));
+                    } 
+                    else {
+                        addHistory(message.type, messageData);
                     }
                 });
 

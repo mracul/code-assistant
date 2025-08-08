@@ -1,6 +1,7 @@
 # python_backend/orchestrator/agent_registry.py
 import json
 import importlib
+import os
 from typing import Dict, Any
 
 class AgentRegistry:
@@ -8,7 +9,12 @@ class AgentRegistry:
     Dynamically loads and provides access to agent modules based on agents.json.
     """
     def __init__(self, agents_file_path: str = 'agents.json'):
-        with open(agents_file_path, 'r') as f:
+        # Build a path to agents.json relative to this file's location
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        # Go up one level from orchestrator to the python_backend root, then to the project root
+        full_path = os.path.join(dir_path, '..', '..', agents_file_path)
+        
+        with open(full_path, 'r') as f:
             self._agent_definitions = json.load(f)
         self._loaded_agents = {}
 
@@ -18,7 +24,6 @@ class AgentRegistry:
             return self._loaded_agents[agent_name]
 
         # Convert PascalCase agent name to snake_case module name
-        # e.g., "RequirementsEngineer" -> "requirements_engineer"
         module_name = ''.join(['_' + i.lower() if i.isupper() else i for i in agent_name]).lstrip('_')
         
         try:

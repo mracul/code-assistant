@@ -8,9 +8,13 @@ from orchestrator.workflow_runner import WorkflowRunner
 import json
 import asyncio
 import uuid
+import os
 
 app = FastAPI()
 active_connections = {}
+
+# Determine the project root from an environment variable or default to the parent directory
+PROJECT_ROOT = os.path.abspath(os.getenv("PROJECT_ROOT", os.path.join(os.path.dirname(__file__), '..')))
 
 class UserInput(BaseModel):
     text: str
@@ -18,9 +22,16 @@ class UserInput(BaseModel):
 @app.post("/api/v1/connect")
 async def connect():
     """Generates a unique ID for a new client connection."""
+    print("Received new connection request...")
     connection_id = str(uuid.uuid4())
-    state = AgentState(connection_id)
+    print(f"Generated connection ID: {connection_id}")
+    
+    print("Initializing AgentState...")
+    state = AgentState(connection_id, project_root=PROJECT_ROOT)
     active_connections[connection_id] = state
+    print("AgentState initialized and stored.")
+    
+    print("Returning connection ID to client.")
     return {"connection_id": connection_id}
 
 @app.websocket("/ws/{connection_id}")
@@ -32,12 +43,24 @@ async def websocket_endpoint(websocket: WebSocket, connection_id: str):
     state = active_connections[connection_id]
     await state.connect(websocket)
     
+    # Announce connection readiness before starting the context build
+    await state.send_message("connection_ready", {"connection_id": connection_id})
+    
+    # --- Trigger Initial Context Build ---
+    # This runs in the background, sending updates to the client.
+    async def initial_context_build():
+        await state.send_log("Workspace context build initiated...")
+        context_builder = ContextBuilder(state)
+        await context_builder.run_initial_scan()
+        await state.send_log("Workspace context is ready.")
+    
+    asyncio.create_task(initial_context_build())
+    # ------------------------------------
+
     try:
-        await state.send_message("connection_ready", {"connection_id": connection_id})
+        # Keep the connection alive to receive broadcasts
         while True:
-            # This websocket is for broadcasting from the server.
-            # Input is handled via the HTTP endpoint.
-            await asyncio.sleep(1)
+            await asyncio.sleep(3600) # Sleep for a long time
             
     except WebSocketDisconnect:
         state.disconnect()
@@ -59,7 +82,11 @@ async def handle_user_input(state: AgentState, user_input: str):
     instruction = parsed["instruction"]
 
     # Dispatch to the command registry
-    if command in COMMAND_REGISTRY:
+    if command == "analyze":
+        await state.send_log("Code analysis workflow requested.")
+        workflow_runner = WorkflowRunner(state)
+        asyncio.create_task(workflow_runner.execute_workflow('CodeAnalysis'))
+    elif command in COMMAND_REGISTRY:
         await COMMAND_REGISTRY[command](state, args)
     elif command == "prompt":
         # Handle natural language prompts by running the context builder and then a workflow

@@ -34,6 +34,15 @@
         { "step": "Create Commit Message", "agent": "ConventionalCommit" },
         { "step": "Prepare Git Commands", "agent": "VersionControl" }
       ]
+    },
+    "CodeAnalysis": {
+      "description": "Scans, parses, and analyzes the codebase structure.",
+      "sequence": [
+        {
+          "step": "1. Analyze Code Structure",
+          "agent": "StructureAnalyzer"
+        }
+      ]
     }
   }
 }

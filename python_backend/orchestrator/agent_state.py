@@ -7,7 +7,7 @@ class AgentState:
     """
     A structured class to manage the agent's state, context, and memory.
     """
-    def __init__(self, connection_id: str):
+    def __init__(self, connection_id: str, project_root: str):
         # Core Conversation with persistence
         history_path = f".conversation_history_{connection_id}.json"
         self.conversation_history = ConversationHistory(persist_path=history_path)
@@ -25,6 +25,7 @@ class AgentState:
         self.last_agent_output = None
         self.proposed_strategies = []
         self.selected_solution = None
+        self.project_root = project_root
 
     async def connect(self, websocket):
         """Establishes the WebSocket connection for the client."""

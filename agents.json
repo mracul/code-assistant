@@ -6,5 +6,21 @@
     {
         "name": "SolutionArchitect",
         "description": "Designs a high-level solution to meet the requirements."
+    },
+    {
+        "name": "StructureAnalyzer",
+        "description": "Analyzes the codebase structure using ASTs and call graphs."
+    },
+    {
+        "name": "CreativeArchitect",
+        "description": "Brainstorms high-level solution strategies."
+    },
+    {
+        "name": "TechnicalAnalyst",
+        "description": "Evaluates and selects the optimal technical solution."
+    },
+    {
+        "name": "DiffAgent",
+        "description": "Generates code changes (diffs) based on a selected solution."
     }
 ]
